@@ -26,11 +26,11 @@ function App() {
 
       <form id="query-form" className="flex flex-col items-center justify-around min-w-full h-[90vh]" onSubmit={submitToBackend}>
         {submitStatus.type && (
-          <div className={`w-[96%] p-4 rounded mb-4 ${submitStatus.type === 'success' ? 'bg-[#0f0f0f] text-green-100' : 'bg-red-900 text-red-100'}`}>
+          <div className={`w-[96%] p-4 rounded mb-4 ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}>
             {submitStatus.message}
           </div>
         )}
-        <div className="flex flex-col w-[96%] h-[27.5%] bg-[#0f0f0f]">
+        <div className="flex flex-col w-[96%] h-[27.5%] bg-[#1b1b1b]">
           {(showInstructions) ? <h1 className="text-5xl h-1/5 ml-2 mt-2">1: Specify what you want to look for in text files</h1> : <></>} 
           
           <div className={`flex flex-row items-center justify-center ${(showInstructions) ? "h-4/5" : "h-full"}`}>
@@ -38,7 +38,7 @@ function App() {
           </div>
         </div>
 
-        <div className="flex flex-col w-[96%] h-[70%] bg-[#0f0f0f]">
+        <div className="flex flex-col w-[96%] h-[70%] bg-[#1b1b1b]">
           {(showInstructions) ? <h1 className="text-5xl h-1/7 ml-2 mt-2">2: Provide package file of your text files</h1> : <></>} 
 
           <div className={`flex flex-col items-center ${(showInstructions) ? "h-6/7" : "h-full justify-center"}`}>
@@ -67,7 +67,7 @@ function App() {
 
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 right-0 h-screen w-[17.5%] min-w-[280px] bg-[#0f0f0f] border-l-2 border-white transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed top-0 right-0 h-screen w-[17.5%] min-w-[280px] bg-[#1b1b1b] border-l-2 border-white transition-transform duration-300 ease-in-out z-50 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -106,7 +106,7 @@ function App() {
       {/* Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-[#0f0f0f] opacity-50 z-40"
+          className="fixed inset-0 bg-[#1b1b1b] opacity-50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
