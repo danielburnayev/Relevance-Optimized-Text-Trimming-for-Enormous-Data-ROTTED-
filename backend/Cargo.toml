@@ -1,0 +1,18 @@
+[package]
+name = "bitvector_search"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.101"
+dashmap = "6.1.0"
+candle-core = "=0.9.1"
+candle-nn = "=0.9.1"
+embed_anything = "0.6.7"
+rayon = "1.11.0"
+simsimd = "6.5.12"
+rand = "0.10.0"
+rand_chacha = "0.10.0"
+ndarray = "0.17.2"
+rand_distr = "0.6.0"
+futures = "0.3.31"
