@@ -10,6 +10,8 @@ function App() {
   const [currZipImg, setZipImg] = useState(whiteZip);
   const [showInstructions, setInstructions] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
 
   return (
     // outermost <> is a div with id root
@@ -23,8 +25,13 @@ function App() {
       </header>
 
       <form id="query-form" className="flex flex-col items-center justify-around min-w-full h-[90vh]" onSubmit={submitToBackend}>
+        {submitStatus.type && (
+          <div className={`w-[96%] p-4 rounded mb-4 ${submitStatus.type === 'success' ? 'bg-[#0f0f0f] text-green-100' : 'bg-red-900 text-red-100'}`}>
+            {submitStatus.message}
+          </div>
+        )}
         <div className="flex flex-col w-[96%] h-[27.5%] bg-[#0f0f0f]">
-          {(showInstructions) ? <h1 className="text-5xl h-1/5 ml-2 mt-2">Step 1: Specify what you want to look for in text files</h1> : <></>} 
+          {(showInstructions) ? <h1 className="text-5xl h-1/5 ml-2 mt-2">1: Specify what you want to look for in text files</h1> : <></>} 
           
           <div className={`flex flex-row items-center justify-center ${(showInstructions) ? "h-4/5" : "h-full"}`}>
             <TextFormElement givenID="desired-outcome-text-field" labelText="Desired Outcome: " placeholderText="Outcome"/>
@@ -32,13 +39,13 @@ function App() {
         </div>
 
         <div className="flex flex-col w-[96%] h-[70%] bg-[#0f0f0f]">
-          {(showInstructions) ? <h1 className="text-5xl h-1/7 ml-2 mt-2">Step 2: Provide package file of your text files</h1> : <></>} 
+          {(showInstructions) ? <h1 className="text-5xl h-1/7 ml-2 mt-2">2: Provide package file of your text files</h1> : <></>} 
 
           <div className={`flex flex-col items-center ${(showInstructions) ? "h-6/7" : "h-full justify-center"}`}>
             <h2>Accepts only one .zip file containing text files</h2>
             <h3>Less than or equal to 50GB</h3>
             
-            <div id="give-zip-btn" className="flex flex-col items-center justify-center border-3 border-white h-1/2 aspect-square cursor-pointer mt-3.75 mb-1.5" 
+            <div id="give-zip-btn" className="flex flex-col items-center justify-center border-3 border-white min-h-1/2 max-h-1/2 aspect-square cursor-pointer mt-3.75 mb-1.5" 
                 onClick={activateHiddenFileInput}
                 onMouseOver={() => setZipImg(blackZip)}
                 onMouseLeave={() => setZipImg(whiteZip)}> 
@@ -53,14 +60,14 @@ function App() {
             </div>
 
             <input type="file" id="file-upload" accept=".zip" className="hidden" onChange={prepForSendingOver}/> {/* Hidden file input that will get activated when zip-name-container is clicked. ALWAYS STAYS HIDDEN */}
-            <input type="submit" value="Submit" id="submit-btn" className="hidden min-w-1/6 max-w-1/4 aspect-16/5 text-3xl"/>
+            <input type="submit" value={isSubmitting ? "Processing..." : "Submit"} id="submit-btn" className="hidden min-w-1/6 max-w-1/4 aspect-16/5 text-3xl disabled:opacity-50 disabled:cursor-not-allowed" disabled={isSubmitting}/>
           </div>
         </div>
       </form>
 
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 right-0 h-screen w-[17.5%] bg-[#0a0a0a] border-l-2 border-white transition-transform duration-300 ease-in-out z-50 ${
+        className={`fixed top-0 right-0 h-screen w-[17.5%] min-w-[280px] bg-[#0f0f0f] border-l-2 border-white transition-transform duration-300 ease-in-out z-50 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -82,13 +89,13 @@ function App() {
             <button
               id="instructions-toggle"
               onClick={() => setInstructions(!showInstructions)}
-              className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
+              className={`relative w-12 h-6 sm:w-14 sm:h-7 rounded-full transition-colors duration-300 flex-shrink-0 ${
                 showInstructions ? 'bg-blue-600' : 'bg-gray-600'
               }`}
             >
               <span
-                className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${
-                  showInstructions ? 'translate-x-7' : 'translate-x-0'
+                className={`absolute top-0.5 left-0.5 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full transition-transform duration-300 ${
+                  showInstructions ? 'translate-x-6 sm:translate-x-7' : 'translate-x-0'
                 }`}
               />
             </button>
@@ -99,12 +106,84 @@ function App() {
       {/* Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-[#0a0a0a] opacity-50 z-40"
+          className="fixed inset-0 bg-[#0f0f0f] opacity-50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
     </>
-  )
+  );
+  
+  async function submitToBackend(event: React.SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const fileUploadInput: HTMLInputElement | null = document.getElementById("file-upload") as HTMLInputElement;
+    const desiredOutcomeInput: HTMLInputElement | null = document.getElementById("desired-outcome-text-field") as HTMLInputElement;
+    let errorOccured: boolean = false;
+
+    if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length == 0) {
+      setMissingFieldFlash(document.getElementById("give-zip-btn"));
+      console.error("No file selected");
+      errorOccured = true;
+    }
+    if (!desiredOutcomeInput || !desiredOutcomeInput.value.trim()) {
+      setMissingFieldFlash(document.getElementById("desired-outcome-text-field-container"));
+      console.error("No desired outcome entered");
+      errorOccured = true;
+    }
+
+    if (errorOccured) {return;}
+    
+    const zipFile = fileUploadInput!.files![0];
+    const desiredOutcome = desiredOutcomeInput.value;
+    
+    setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: '' });
+    
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64File = e.target?.result as string;
+      
+      const dataToSend = {
+        desiredOutcome: desiredOutcome,
+        zipFile: base64File,
+        fileName: zipFile.name,
+        fileSize: zipFile.size
+      };
+      
+      try {
+        const response = await fetch("http://127.0.0.1:5000", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(dataToSend)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Success:", result);
+          setSubmitStatus({ type: 'success', message: 'File processed successfully! Check the console for results.' });
+          // Optional: Reset form after success
+          setTimeout(() => {
+            resetForm();
+          }, 2000);
+        } else {
+          console.error("Error:", response.statusText);
+          setSubmitStatus({ type: 'error', message: `Error: ${response.statusText}. Please try again.` });
+        }
+      } 
+      catch (error) {
+        console.error("Fetch error:", error);
+        setSubmitStatus({ type: 'error', message: `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure the backend is running.` });
+      }
+      finally {
+        setIsSubmitting(false);
+      }
+    };
+    
+    reader.readAsDataURL(zipFile);
+  }
 }
 
 function activateHiddenFileInput() {
@@ -140,12 +219,9 @@ function prepForSendingOver() {
   const zipNameContainer: HTMLElement | null = revealHiddenObj("zip-name-container");
   revealHiddenObj("submit-btn");
 
-  if (zipNameContainer && fileUploadInput && fileUploadInput.files && fileUploadInput.files.length == 1 && fileUploadInput.files[0].size <= maxZipSize && zipName) {
-    zipNameContainer.classList.add("flex");
-    zipNameContainer.classList.add("flex-row");
-    zipNameContainer.classList.add("justify-center");
-    zipNameContainer.classList.add("items-center");
-    zipName!.textContent = fileUploadInput.files[0].name;
+  if (zipNameContainer && fileUploadInput?.files && fileUploadInput.files.length === 1 && fileUploadInput.files[0].size <= maxZipSize && zipName) {
+    zipNameContainer.classList.add("flex", "flex-row", "justify-center", "items-center");
+    zipName.textContent = fileUploadInput.files[0].name;
   }
 }
 
@@ -156,63 +232,14 @@ function setMissingFieldFlash(field: HTMLElement | null) {
   }
 }
 
-async function submitToBackend(event: React.SyntheticEvent<HTMLFormElement>) {
-  event.preventDefault();
-
-  const fileUploadInput: HTMLInputElement | null = document.getElementById("file-upload") as HTMLInputElement;
-  const desiredOutcomeInput: HTMLInputElement | null = document.getElementById("desired-outcome-text-field") as HTMLInputElement;
-  let errorOccured: boolean = false;
-
-  if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length == 0) {
-    setMissingFieldFlash(document.getElementById("give-zip-btn"));
-    console.error("No file selected");
-    errorOccured = true;
+function resetForm() {
+  hideObj("submit-btn");
+  hideObj("zip-name-container");
+  resetHiddenFileInput();
+  const outcomeInput = document.getElementById("desired-outcome-text-field") as HTMLInputElement;
+  if (outcomeInput) {
+    outcomeInput.value = '';
   }
-  if (!desiredOutcomeInput || !desiredOutcomeInput.value.trim()) {
-    setMissingFieldFlash(document.getElementById("desired-outcome-text-field-container"));
-    console.error("No desired outcome entered");
-    errorOccured = true;
-  }
-
-  if (errorOccured) {return;}
-  
-  const zipFile = fileUploadInput!.files![0];
-  const desiredOutcome = desiredOutcomeInput.value;
-  
-  // Convert file to base64
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const base64File = e.target?.result as string;
-    
-    const dataToSend = {
-      desiredOutcome: desiredOutcome,
-      zipFile: base64File,
-      fileName: zipFile.name,
-      fileSize: zipFile.size
-    };
-    
-    try {
-      const response = await fetch("http://127.0.0.1:5000", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(dataToSend)
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log("Success:", result);
-      } else {
-        console.error("Error:", response.statusText);
-      }
-    } 
-    catch (error) {
-      console.error("Fetch error:", error);
-    }
-  };
-  
-  reader.readAsDataURL(zipFile);
 }
 
 export default App;
