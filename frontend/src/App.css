@@ -16,3 +16,25 @@ input:is([type="text"]) {
 input:is([type="text"]):focus {
   outline: none;
 }
+
+/* emulate button  */
+input:is([type="submit"]) {
+  border: 1px solid white;
+  padding: 5px;
+  cursor: pointer;
+}
+
+input:is([type="submit"]):hover {
+  border-color: black;
+  color: black;
+  background-color: white;
+}
+
+#give-zip-btn {
+  transition: box-shadow 150ms ease-out;
+}
+
+#give-zip-btn:hover {
+  background-color: white;
+  box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.5);
+}
