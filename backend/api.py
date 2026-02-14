@@ -1,39 +1,57 @@
 from flask import Flask
 import os
+import json,re
 from flask import request
-from flask import flash,redirect
-import zipfile
+from flask import flash,redirect,jsonify
+import zipfile,os,base64
+from keybert import KeyBERT
+import random
+import time
+from datetime import datetime
 
 app = Flask(__name__)
-UPLOAD_DIR = '/Users/aaronpinto/Documents'
-os.makedirs(UPLOAD_DIR,exist_ok=True)
-ALLOWED_EXTENSIONS={'txt','pdf','zip'}
-app.config['UPLOAD_DIR'] = UPLOAD_DIR
 
 @app.route('/') #just testing how flask worked
 def home():
     return '<h1>Flask REST starting guys</h1>'
 
+now=datetime.now().strftime("%Y%m%d_%H%M")
+UPLOAD_DIR = 'UPLOAD'
+EXTRACT_DIR = 'EXTRACT'+now
+os.makedirs(UPLOAD_DIR,exist_ok=True)
+os.makedirs(EXTRACT_DIR,exist_ok=True)
+app.config['UPLOAD_DIR'] = UPLOAD_DIR
+app.config['EXTRACT_DIR'] = EXTRACT_DIR
+#const dataToSend = {
+     # desiredOutcome: desiredOutcome,
+     # zipFile: base64File,
+     # fileName: zipFile.name,
+     # fileSize: zipFile.size
+    #};
+@app.post('/userinput')
+
+def userinput():
+   body =request.get_json()
+   userinput=body["desiredOutcome"]
+   kw_model = KeyBERT()
+   keywords=kw_model.extract_keywords(userinput)
+   b64 = body["zipFile"]
+   filename = body["fileName"]
+   file_bytes = base64.b64decode(b64)
+   upload_path= os.path.join(UPLOAD_DIR,filename)
+   
+   with open(upload_path, "wb") as f:
+        f.write(file_bytes) 
+   
+   with zipfile.ZipFile(upload_path, "r") as z:
+        z.extractall(EXTRACT_DIR)
+
+   return jsonify({"ok": True, "saved": EXTRACT_DIR, "extracted_to": EXTRACT_DIR})
+
 if __name__ == '__main__':
     app.run(debug=True)
-def allowed_file(filename): 
-    return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.post('/upload')
-def uploadomega():
-    if 'file' not in request.files:
-        flash('no file part')
-        return redirect(request.url)
-    file =request.files['file']
-    if file.filename == "":
-        flash("No Selected files")
-        return redirect(request.url)
-    if file and allowed_file(file.filename):
-        # everything under this is the stack overflow answer please fill in results
-        zipfile_ob = zipfile.ZipFile(file_like_object)
-    file_names = zipfile_ob.namelist
-    # Filter names to only include the filetype that you want:
-    file_names = [file_name for file_name in file_names if file_name.endswith(".txt")]
-    files = [(zipfile_ob.open(name).read(),name) for name in file_names]
-    return str(files)
+
+
+
 
