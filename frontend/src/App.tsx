@@ -8,6 +8,8 @@ const maxZipSize: number = 50000000;
 
 function App() {
   const [currZipImg, setZipImg] = useState(whiteZip);
+  const [showInstructions, setInstructions] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     // outermost <> is a div with id root
@@ -17,35 +19,90 @@ function App() {
           <h1 className="text-4xl">ROTTED</h1>
           <h2>Relevance Optimized Text Trimming for Enormous Data</h2>
         </div>
-        <button id="settings-btn">Settings</button>
+        <button id="settings-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>Settings</button>
       </header>
 
-      <form id="query-form" className="flex flex-col items-center min-w-full h-[90vh]" onSubmit={submitToBackend}>
-        <div className="flex items-center justify-center border-b-[0.75px] border-r-white w-[95%] h-[40%]">
-          <TextFormElement givenID="desired-outcome-text-field" labelText="Desired Outcome: " placeholderText="Wow"/>
-        </div>
-        <div className="flex flex-col items-center justify-center w-[95%] h-[60%]">
-          <h2>Accepts only one .zip file containing text files</h2>
-          <h3>Less than or equal to 50GB</h3>
+      <form id="query-form" className="flex flex-col items-center justify-around min-w-full h-[90vh]" onSubmit={submitToBackend}>
+        <div className="flex flex-col w-[96%] h-[27.5%] bg-[#0f0f0f]">
+          {(showInstructions) ? <h1 className="text-5xl h-1/5 ml-2 mt-2">Step 1: Specify what you want to look for in text files</h1> : <></>} 
           
-          <div id="give-zip-btn" className="flex flex-col items-center justify-center border-3 border-white h-1/2 aspect-square cursor-pointer mt-3.75 mb-1.5" 
-               onClick={activateHiddenFileInput}
-               onMouseOver={() => setZipImg(blackZip)}
-               onMouseLeave={() => setZipImg(whiteZip)}> 
-            <img src={currZipImg} />
+          <div className={`flex flex-row items-center justify-center ${(showInstructions) ? "h-4/5" : "h-full"}`}>
+            <TextFormElement givenID="desired-outcome-text-field" labelText="Desired Outcome: " placeholderText="Outcome"/>
           </div>
-          <div id="zip-name-container" className="hidden w-1/3 max-w-1/2 mb-3.75">
-            <p id="zip-name" className="mr-2.5"></p>
-            <button className='flex items-center justify-center h-5.5 aspect-square' 
-                    onClick={() => {hideObj("submit-btn"); hideObj("zip-name-container"); resetHiddenFileInput();}}>
-                      X
+        </div>
+
+        <div className="flex flex-col w-[96%] h-[70%] bg-[#0f0f0f]">
+          {(showInstructions) ? <h1 className="text-5xl h-1/7 ml-2 mt-2">Step 2: Provide package file of your text files</h1> : <></>} 
+
+          <div className={`flex flex-col items-center ${(showInstructions) ? "h-6/7" : "h-full justify-center"}`}>
+            <h2>Accepts only one .zip file containing text files</h2>
+            <h3>Less than or equal to 50GB</h3>
+            
+            <div id="give-zip-btn" className="flex flex-col items-center justify-center border-3 border-white h-1/2 aspect-square cursor-pointer mt-3.75 mb-1.5" 
+                onClick={activateHiddenFileInput}
+                onMouseOver={() => setZipImg(blackZip)}
+                onMouseLeave={() => setZipImg(whiteZip)}> 
+              <img src={currZipImg} />
+            </div>
+            <div id="zip-name-container" className="hidden w-2/3 max-w-7/8 mb-3.75">
+              <p id="zip-name" className="mr-2.5"></p>
+              <button type="button" className='flex items-center justify-center h-5.5 aspect-square' 
+                      onClick={() => {hideObj("submit-btn"); hideObj("zip-name-container"); resetHiddenFileInput();}}>
+                        X
+              </button>
+            </div>
+
+            <input type="file" id="file-upload" accept=".zip" className="hidden" onChange={prepForSendingOver}/> {/* Hidden file input that will get activated when zip-name-container is clicked. ALWAYS STAYS HIDDEN */}
+            <input type="submit" value="Submit" id="submit-btn" className="hidden min-w-1/6 max-w-1/4 aspect-16/5 text-3xl"/>
+          </div>
+        </div>
+      </form>
+
+      {/* Sidebar */}
+      <div 
+        className={`fixed top-0 right-0 h-screen w-[17.5%] bg-[#0a0a0a] border-l-2 border-white transition-transform duration-300 ease-in-out z-50 ${
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold">Settings</h2>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="text-2xl hover:text-gray-400 transition-colors"
+            >
+              ×
             </button>
           </div>
 
-          <input type="file" id="file-upload" accept=".zip" className="hidden" onChange={readyForSubmit}/> {/* Hidden file input that will get activated when zip-name-container is clicked. ALWAYS STAYS HIDDEN */}
-          <input type="submit" value="Submit" id="submit-btn" className="hidden w-1/6 aspect-16/5 text-3xl"/>
+          <div className="flex items-center justify-between py-4 border-b border-gray-700">
+            <label htmlFor="instructions-toggle" className="text-lg cursor-pointer">
+              Show Instructions
+            </label>
+            <button
+              id="instructions-toggle"
+              onClick={() => setInstructions(!showInstructions)}
+              className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
+                showInstructions ? 'bg-blue-600' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${
+                  showInstructions ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
         </div>
-      </form>
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-[#0a0a0a] opacity-50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </>
   )
 }
@@ -77,7 +134,7 @@ function revealHiddenObj(objID: string): HTMLElement | null {
   return null;
 }
 
-function readyForSubmit() {
+function prepForSendingOver() {
   const fileUploadInput: HTMLInputElement | null = document.getElementById("file-upload") as HTMLInputElement;
   const zipName: HTMLParagraphElement | null = document.getElementById("zip-name") as HTMLParagraphElement;
   const zipNameContainer: HTMLElement | null = revealHiddenObj("zip-name-container");
@@ -92,8 +149,70 @@ function readyForSubmit() {
   }
 }
 
-function submitToBackend(event: React.SyntheticEvent<HTMLFormElement>) {
+function setMissingFieldFlash(field: HTMLElement | null) {
+  if (field) {
+    field!.classList.add("missing-field-flash");
+    setTimeout(() => {field!.classList.remove("missing-field-flash");}, 1500);
+  }
+}
+
+async function submitToBackend(event: React.SyntheticEvent<HTMLFormElement>) {
   event.preventDefault();
+
+  const fileUploadInput: HTMLInputElement | null = document.getElementById("file-upload") as HTMLInputElement;
+  const desiredOutcomeInput: HTMLInputElement | null = document.getElementById("desired-outcome-text-field") as HTMLInputElement;
+  let errorOccured: boolean = false;
+
+  if (!fileUploadInput || !fileUploadInput.files || fileUploadInput.files.length == 0) {
+    setMissingFieldFlash(document.getElementById("give-zip-btn"));
+    console.error("No file selected");
+    errorOccured = true;
+  }
+  if (!desiredOutcomeInput || !desiredOutcomeInput.value.trim()) {
+    setMissingFieldFlash(document.getElementById("desired-outcome-text-field-container"));
+    console.error("No desired outcome entered");
+    errorOccured = true;
+  }
+
+  if (errorOccured) {return;}
+  
+  const zipFile = fileUploadInput!.files![0];
+  const desiredOutcome = desiredOutcomeInput.value;
+  
+  // Convert file to base64
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const base64File = e.target?.result as string;
+    
+    const dataToSend = {
+      desiredOutcome: desiredOutcome,
+      zipFile: base64File,
+      fileName: zipFile.name,
+      fileSize: zipFile.size
+    };
+    
+    try {
+      const response = await fetch("http://127.0.0.1:5000", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(dataToSend)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Success:", result);
+      } else {
+        console.error("Error:", response.statusText);
+      }
+    } 
+    catch (error) {
+      console.error("Fetch error:", error);
+    }
+  };
+  
+  reader.readAsDataURL(zipFile);
 }
 
 export default App;
