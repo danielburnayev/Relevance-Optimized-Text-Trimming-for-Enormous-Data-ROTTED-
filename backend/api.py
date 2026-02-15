@@ -120,6 +120,9 @@ def userinput():
                    out.write(text[a:b])
                    out.write("\n\n")
 
+               
+               result=','.join(keywords)
+               out.write(result)
 
                count += len(merged)
   return {"count": count, "output_file": out_file}
