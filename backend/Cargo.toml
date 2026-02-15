@@ -6,9 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.101"
 dashmap = "6.1.0"
-candle-core = "=0.9.1"
-candle-nn = "=0.9.1"
-embed_anything = "0.6.7"
+embed_anything = { version = "0.6.7", features = ["ort"] }
 rayon = "1.11.0"
 simsimd = "6.5.12"
 rand = "0.10.0"
@@ -16,3 +14,10 @@ rand_chacha = "0.10.0"
 ndarray = "0.17.2"
 rand_distr = "0.6.0"
 futures = "0.3.31"
+rkyv = { version = "0.8.15", features = ["bytecheck", "std", "alloc"] }
+csv = "1.4.0"
+bytecheck = "0.8.2"
+memmap2 = "0.9.9"
+intel-mkl-src = "0.8.1"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
