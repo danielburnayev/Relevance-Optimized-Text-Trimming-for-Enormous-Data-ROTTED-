@@ -55,7 +55,8 @@ function App() {
 
         <div className="relative flex flex-row justify-between w-[96%] h-[70%]">
           {submitStatus.type && 
-            (<div className={`absolute flex items-center justify-center w-[35%] min-h-[35%] text-center ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}>
+            (<div className={`absolute flex items-center justify-center w-[35%] min-h-[35%] text-center cursor-pointer ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}
+                  onClick={() => setSubmitStatus({ type: null, message: '' })}>
               {submitStatus.message}
             </div>
             )
