@@ -8,8 +8,11 @@ from keybert import KeyBERT
 import random
 import time
 from datetime import datetime
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route('/') #just testing how flask worked
 def home():
@@ -28,10 +31,13 @@ app.config['EXTRACT_DIR'] = EXTRACT_DIR
      # fileName: zipFile.name,
      # fileSize: zipFile.size
     #};
-@app.post('/userinput')
 
+@app.post('/userinput')
 def userinput():
    body =request.get_json()
+   print(body)
+
+
    userinput=body["desiredOutcome"]
    kw_model = KeyBERT()
    keywords=kw_model.extract_keywords(userinput)

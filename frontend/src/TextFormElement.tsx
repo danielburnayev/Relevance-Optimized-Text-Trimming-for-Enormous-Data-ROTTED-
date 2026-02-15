@@ -10,7 +10,7 @@ function TextFormElement(props: GivenProps) {
     const [backColorYes, setBackColorApperance] = useState(false);
     
     return (
-        <div id={`${props.givenID}-container`} className={`${(backColorYes) ? "bg-[#3f3f3f]" : ""} p-[7.5px]`}>
+        <div id={`${props.givenID}-container`} className={`${(backColorYes) ? "bg-[#3f3f3f]" : ""} w-[190px] p-[6px]`}>
             <label htmlFor={props.givenID}>{props.labelText}</label>
             <input type="text" 
                    id={props.givenID} placeholder={props.placeholderText} 

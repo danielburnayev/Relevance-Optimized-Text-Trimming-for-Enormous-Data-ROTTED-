@@ -13,7 +13,7 @@ input:is([type="text"]) {
   color: black;
 }
 
-input:is([type="text"]):focus {
+input:is([type="text"]):focus, textarea:focus {
   outline: none;
 }
 
