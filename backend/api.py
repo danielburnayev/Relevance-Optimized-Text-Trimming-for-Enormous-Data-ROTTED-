@@ -81,7 +81,7 @@ def userinput():
                if not text:
                    continue
               
-               keywords = [kw for kw, _ in kw_model.extract_keywords(text)]
+               keywords = [kw for kw, _ in kw_model.extract_keywords(userinput)]
 
 
                k = max(1, int(len(text) * 0.025))
