@@ -2,7 +2,14 @@ import { useState } from 'react';
 import TextFormElement from './TextFormElement';
 import whiteZip from './assets/zip logo white.webp';
 import blackZip from './assets/zip logo black.webp';
+import downloadIcon from './assets/download logo.webp';
 import './App.css';
+
+interface ZipInfo {
+    base64Encoding: string;
+    zipSize: number;
+    numberOfFiles: number;
+}
 
 const maxZipSize: number = 50000000;
 
@@ -13,6 +20,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
+  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>(null);
 
   return (
     // outermost <> is a div with id root
@@ -32,7 +40,7 @@ function App() {
           } 
           
           {(!useNaturalLanguage) ? 
-            <div className={`flex flex-row items-center justify-around m-auto w-9/10 ${(showInstructions) ? "h-4/5" : "h-full justify-center"}`}>
+            <div className={`flex flex-row items-center justify-between m-auto w-9/10 ${(showInstructions) ? "h-4/5" : "h-full"}`}>
               <TextFormElement givenID="desired-outcome-text-field" labelText="Outcome: " placeholderText="Ex: Burglary"/>
               <TextFormElement givenID="important-date-field" labelText="Date: " placeholderText="Ex: 12/2/23, 12/2/2023"/>
               <TextFormElement givenID="important-people-field" labelText="People: " placeholderText="Ex: Jane Smith"/>
@@ -45,23 +53,23 @@ function App() {
           } 
         </div>
 
-        <div className="relative flex flex-col w-[96%] h-[70%] bg-[#1b1b1b]">
-          {(showInstructions) ? <h1 className="text-4xl h-1/7 ml-2 mt-2">2: Provide package file of your text files</h1> : <></>} 
-          
+        <div className="relative flex flex-row justify-between w-[96%] h-[70%]">
           {submitStatus.type && 
-            setTimeout(() => setSubmitStatus({ type: null, message: '' }), 3500) && 
-            (<div className={`absolute flex items-center justify-center right-5 top-2 w-[35%] min-h-[35%] text-center pt-[auto] pb-[auto] mb-4 ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}>
+            (<div className={`absolute flex items-center justify-center w-[35%] min-h-[35%] text-center ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}>
               {submitStatus.message}
             </div>
-          )}
+            )
+          }
 
-          <div className={`flex flex-col items-center w-full ${(showInstructions) ? "h-5/7" : "h-full justify-center"}`}>
+          <div className={`flex flex-col items-center bg-[#1b1b1b] h-full ${(!receivedZip) ? "w-full" : "w-[59.5%]"} ${(!showInstructions) ? "justify-center" : "" }`}>
+             {(showInstructions) ? <h1 className="text-4xl h-1/7 mr-auto ml-2 mt-2">2: Provide package file of your text files</h1> : <></>} 
+            
             <h2 className="text-center">
               1 .zip file {"<"}= 50GB <br/>
               Only .txt or .json files inside will be analyzed
             </h2>
             
-            <div id="give-zip-btn" className="flex flex-col items-center justify-center border-3 border-white min-h-1/2 max-h-1/2 aspect-square cursor-pointer mt-3.75 mb-1.5" 
+            <div id="give-zip-btn" className="flex flex-col items-center justify-center border-3 border-white min-h-[45%] max-h-[45%] aspect-square cursor-pointer mt-3.75 mb-1.5" 
                 onClick={activateHiddenFileInput}
                 onMouseOver={() => setZipImg(blackZip)}
                 onMouseLeave={() => setZipImg(whiteZip)}> 
@@ -87,6 +95,28 @@ function App() {
               </div>
             )}
           </div>
+
+          {receivedZip && (
+            <div className="flex flex-col items-center bg-[#383838] h-full w-[39.5%]">
+              <div className="flex items-center justify-between h-1/8 mb-[12.5%] w-full">
+                <h1 className="text-4xl mr-auto ml-2 mt-2">{(showInstructions) ? "3: Download relevant files" : ""}</h1>
+                <button className="mr-2 mt-2 h-[30px] aspect-square text-center" 
+                        onClick={() => setReceivedZip(null)}>
+                          X
+                </button>
+              </div>
+              <a href={receivedZip.base64Encoding} download="results.zip" 
+                 id="download-zip-btn"
+                 className="flex flex-col items-center justify-center h-1/2 aspect-square px-6 py-3 text-black border-4 border-white bg-white"
+                 onClick={() => setReceivedZip(null)}>
+
+                <img src={downloadIcon}/>
+                <p>{`results.zip (${(receivedZip.zipSize / (1024 * 1024)).toFixed(2)} MB)`}</p>
+                <p>{`${receivedZip.numberOfFiles} files`}</p>
+              </a>
+            </div>
+          )}
+
         </div>
       </form>
 
@@ -244,8 +274,15 @@ function App() {
         
         if (response.ok) {
           const result = await response.json();
+          const fullBase64Data = "data:application/zip;base64," + result.processedZipFile;
+          const zipFileSize = fullBase64Data.length * (3/4) - (fullBase64Data.endsWith("==") ? 2 : fullBase64Data.endsWith("=") ? 1 : 0);
+          const newNumberOfFiles = result.numberOfFiles;
           console.log("Success:", result);
           setSubmitStatus({ type: 'success', message: 'File processed successfully! Check the console for results.' });
+          setReceivedZip({ base64Encoding: fullBase64Data, 
+                           zipSize: zipFileSize, 
+                           numberOfFiles: newNumberOfFiles 
+                         });
         } 
         else {
           console.error("Error:", response.statusText);
