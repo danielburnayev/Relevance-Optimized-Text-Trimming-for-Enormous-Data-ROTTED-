@@ -55,11 +55,10 @@ input:is([type="submit"]):hover {
   animation: red-flash 1.5s ease-in-out;
 }
 
-#download-zip-btn {
+.download-zip-flash {
   animation: white-halo 1.5s ease-in-out infinite;
 }
-
-#download-zip-btn:hover {
+.download-zip-flash:hover {
   animation: none;
   background-color: white;
   box-shadow: 0 0 20px 10px rgba(255, 255, 255, 0.9);

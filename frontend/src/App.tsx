@@ -20,7 +20,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
-  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>({ base64Encoding: 'dataapplication/zipbase64UEsDBBQACAAIAGGMTlwAAAAAAAAAAAAAAAAIACAAdGVzdC50eHR1eAsAAQT1AQAABBQAAABVVA0AB5f4kGmZ+JBpl/iQaTWIMQoAMBDCHnavEQ4HdfP/UFroEpKIq2KdSzrgk46cJRqPiK0zuv3/AVBLBwjlLFRHKgAAADgAAABQSwMEFAAIAAgAYYxOXAAAAAAAAAAAAAAAABMAIABfX01BQ09TWC8uX3Rlc3QudHh0dXgLAAEE9QEAAAQUAAAAVVQNAAeX+JBpmfiQaZ74kGljYBVjZ2BiYPBNTFbwD1aIUIACkBgDJxAbAXEhEIP4ixmIAo4hIUFQJkjHDCDmRlPCiBAXTc7P1UssKMhJ1Ssoyi9LzUvMS05lYGRieOSvm6d6p+8uAFBLBwjthPYGVgAAAKMAAABQSwECFAMUAAgACABhjE5c5SxURyoAAAA4AAAACAAYAAAAAAAAAAAApIEAAAAAdGVzdC50eHR1eAsAAQT1AQAABBQAAABVVAUAAZf4kGlQSwECFAMUAAgACABhjE5c7YT2BlYAAACjAAAAEwAYAAAAAAAAAAAApIGAAAAAX19NQUNPU1gvLl90ZXN0LnR4dHV4CwABBPUBAAAEFAAAAFVUBQABl/iQaVBLBQYAAAAAAgACAKcAAAA3AQAAAAA', zipSize: 123456765, numberOfFiles: 5 });
+  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>({ base64Encoding: '', zipSize: 0, numberOfFiles: 0 });
 
   return (
     // outermost <> is a div with id root
@@ -63,7 +63,7 @@ function App() {
             )
           }
 
-          <div className={`flex flex-col items-center bg-[#1b1b1b] h-full ${(!receivedZip) ? "w-full" : "w-[59.5%]"} ${(!showInstructions) ? "justify-center" : "" }`}>
+          <div className={`flex flex-col items-center bg-[#1b1b1b] h-full w-[59.5%] ${(!showInstructions) ? "justify-center" : "" }`}>
              {(showInstructions) ? <h1 className="text-4xl h-1/7 mr-auto ml-2 mt-2">2: Provide package file of your text files</h1> : <></>} 
             
             <h2 className="text-center">
@@ -98,26 +98,24 @@ function App() {
             )}
           </div>
 
-          {receivedZip && (
             <div className="flex flex-col items-center bg-[#383838] h-full w-[39.5%]">
               <div className="flex items-center justify-between h-1/8 mb-[12.5%] w-full">
                 <h1 className="text-4xl mr-auto ml-2 mt-2">{(showInstructions) ? "3: Download relevant files" : ""}</h1>
-                <button className="mr-2 mt-2 h-[30px] aspect-square text-center" 
-                        onClick={() => setReceivedZip(null)}>
-                          X
-                </button>
               </div>
-              <a href={receivedZip.base64Encoding} download="results.zip" 
+              <a href={(receivedZip) ? receivedZip.base64Encoding : ""} download="results.zip" 
                  id="download-zip-btn"
-                 className="flex flex-col items-center justify-center h-1/2 aspect-square px-6 py-3 text-black border-4 border-white bg-white"
+                 className={`${(receivedZip) ? "opacity-100 download-zip-flash" : "opacity-50 pointer-events-none"} flex flex-col items-center justify-center h-1/2 aspect-square px-6 py-3 text-black border-4 border-white bg-white`}
                  onClick={() => setReceivedZip(null)}>
 
                 <img src={downloadIcon}/>
-                <p>{`results.zip (${(receivedZip.zipSize / (1024 * 1024)).toFixed(2)} MB)`}</p>
-                <p>{`${receivedZip.numberOfFiles} files`}</p>
+                {receivedZip && (
+                  <>
+                    <p>{`results.zip (${(receivedZip.zipSize / (1024 * 1024)).toFixed(2)} MB)`}</p>
+                    <p>{`${receivedZip.numberOfFiles} files`}</p>
+                  </>
+                )}
               </a>
             </div>
-          )}
 
         </div>
       </form>
@@ -172,6 +170,25 @@ function App() {
               <span
                 className={`absolute top-0 left-0 w-[26px] aspect-square  bg-white transition-transform duration-300 ${
                   useNaturalLanguage ? 'translate-x-6 sm:translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-4 border-b border-gray-700">
+            <label htmlFor="instructions-toggle" className="text-lg cursor-pointer">
+              Demo
+            </label>
+            <button
+              id="instructions-toggle"
+              onClick={() => setReceivedZip((!receivedZip) ? { base64Encoding: '', zipSize: 0, numberOfFiles: 0 } : null)}
+              className={`relative w-12 h-6 sm:w-14 sm:h-7 transition-colors duration-300 shrink-0 ${
+                showInstructions ? 'bg-blue-600' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`absolute top-0 left-0 w-[26px] aspect-square bg-white transition-transform duration-300 ${
+                  showInstructions ? 'translate-x-6 sm:translate-x-7' : 'translate-x-0'
                 }`}
               />
             </button>
