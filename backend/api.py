@@ -41,39 +41,88 @@ app.config['EXTRACT_DIR'] = EXTRACT_DIR
 
 @app.post('/userinput')
 def userinput():
-  body =request.get_json()
-  print(body)
+  try:
+      body = request.get_json()
+      if not body:
+          return {"error": "Empty request body"}, 400
+      print("Received body:", body)
 
+      # Validate required fields
+      if "zipFile" not in body:
+          return {"error": "Missing zipFile in request"}, 400
+      if "fileName" not in body:
+          return {"error": "Missing fileName in request"}, 400
+      if "usedNaturalLanguage" not in body:
+          return {"error": "Missing usedNaturalLanguage in request"}, 400
 
-  usedNaturalLanguage = body["usedNaturalLanguage"]
-  if not usedNaturalLanguage:
-      fields = body["fields"]
+      usedNaturalLanguage = body["usedNaturalLanguage"]
+      
+      if not usedNaturalLanguage:
+          if "fields" not in body:
+              return {"error": "Missing fields in request"}, 400
+          fields = body["fields"]
+          
+          # Extract desired outcome as the primary search term
+          desiredOutcome = fields.get("desiredOutcome", "").strip()
+          if not desiredOutcome:
+              return {"error": "desiredOutcome cannot be empty"}, 400
+          
+          # Build userinput with available fields
+          userinput_parts = [desiredOutcome]
+          if fields.get("date"):
+              userinput_parts.append(fields.get("date"))
+          if fields.get("people"):
+              userinput_parts.append(fields.get("people"))
+          if fields.get("events"):
+              userinput_parts.append(fields.get("events"))
+          if fields.get("location"):
+              userinput_parts.append(fields.get("location"))
+          
+          userinput = " ".join(userinput_parts)
+      else:
+          if "naturalLanguageDescription" not in body:
+              return {"error": "Missing naturalLanguageDescription in request"}, 400
+          naturalLanguageDescription = body["naturalLanguageDescription"].strip()
+          if not naturalLanguageDescription:
+              return {"error": "naturalLanguageDescription cannot be empty"}, 400
+          userinput = naturalLanguageDescription
 
-      desiredOutcome = fields["desiredOutcome"]
-      importantDate = fields["importantDate"]
-      importantPeople = fields["importantPeople"]
-      importantEvents = fields["importantEvents"]
-      importantLocation = fields["importantLocation"]
+      print(f"Using input: {userinput}")
+      
+      kw_model = KeyBERT()
+      b64 = body["zipFile"]
+      filename = body["fileName"]
+      
+      # Handle data URLs with base64 prefix (e.g., data:application/zip;base64,...)
+      if b64.startswith("data:"):
+          b64 = b64.split(",", 1)[1]
+      
+      try:
+          file_bytes = base64.b64decode(b64)
+      except Exception as e:
+          print(f"Base64 decode error: {str(e)}")
+          return {"error": f"Failed to decode base64: {str(e)}"}, 400
+      
+      upload_path = os.path.join(UPLOAD_DIR, filename)
+      print(f"Upload path: {upload_path}, File size: {len(file_bytes)} bytes")
+   
+      with open(upload_path, "wb") as f:
+           f.write(file_bytes)
+   
+      try:
+          with zipfile.ZipFile(upload_path, "r") as z:
+               z.extractall(EXTRACT_DIR)
+      except zipfile.BadZipFile as e:
+          print(f"Zip file error: {str(e)}")
+          return {"error": f"Invalid zip file: {str(e)}"}, 400
+      except Exception as e:
+          print(f"Unexpected zip error: {str(e)}")
+          return {"error": f"Error extracting zip: {str(e)}"}, 400
 
-      userinput = desiredOutcome
+  except Exception as e:
+      print(f"Unexpected error in userinput: {str(e)}")
+      return {"error": f"Unexpected error: {str(e)}"}, 500
 
-  else:
-      naturalLanguageDescription = body["naturalLanguageDescription"]
-
-      userinput = naturalLanguageDescription
-
-#   userinput=body["desiredOutcome"]
-  kw_model = KeyBERT()
-  b64 = body["zipFile"]
-  filename = body["fileName"]
-  file_bytes = base64.b64decode(b64)
-  upload_path= os.path.join(UPLOAD_DIR,filename)
- 
-  with open(upload_path, "wb") as f:
-       f.write(file_bytes)
- 
-  with zipfile.ZipFile(upload_path, "r") as z:
-       z.extractall(EXTRACT_DIR)
   out_file = os.path.join(FINALE_DIR, f"results_{now}.txt")
   count = 0
   with open(out_file, "w", encoding="utf-8") as out:
@@ -140,6 +189,8 @@ def userinput():
                out.write(result)
 
                count += len(merged)
+
+  print(f"Processing complete. Total ranges: {count}")
   return {"count": count, "output_file": out_file}
  
 

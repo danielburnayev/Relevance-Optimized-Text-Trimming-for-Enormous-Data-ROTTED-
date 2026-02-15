@@ -20,7 +20,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
-  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>(null);
+  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>({ base64Encoding: 'dataapplication/zipbase64UEsDBBQACAAIAGGMTlwAAAAAAAAAAAAAAAAIACAAdGVzdC50eHR1eAsAAQT1AQAABBQAAABVVA0AB5f4kGmZ+JBpl/iQaTWIMQoAMBDCHnavEQ4HdfP/UFroEpKIq2KdSzrgk46cJRqPiK0zuv3/AVBLBwjlLFRHKgAAADgAAABQSwMEFAAIAAgAYYxOXAAAAAAAAAAAAAAAABMAIABfX01BQ09TWC8uX3Rlc3QudHh0dXgLAAEE9QEAAAQUAAAAVVQNAAeX+JBpmfiQaZ74kGljYBVjZ2BiYPBNTFbwD1aIUIACkBgDJxAbAXEhEIP4ixmIAo4hIUFQJkjHDCDmRlPCiBAXTc7P1UssKMhJ1Ssoyi9LzUvMS05lYGRieOSvm6d6p+8uAFBLBwjthPYGVgAAAKMAAABQSwECFAMUAAgACABhjE5c5SxURyoAAAA4AAAACAAYAAAAAAAAAAAApIEAAAAAdGVzdC50eHR1eAsAAQT1AQAABBQAAABVVAUAAZf4kGlQSwECFAMUAAgACABhjE5c7YT2BlYAAACjAAAAEwAYAAAAAAAAAAAApIGAAAAAX19NQUNPU1gvLl90ZXN0LnR4dHV4CwABBPUBAAAEFAAAAFVUBQABl/iQaVBLBQYAAAAAAgACAKcAAAA3AQAAAAA', zipSize: 123456765, numberOfFiles: 5 });
 
   return (
     // outermost <> is a div with id root
@@ -248,6 +248,11 @@ function App() {
     const reader = new FileReader();
     reader.onload = async function(e) {
       const base64File = e.target?.result as string;
+      console.log(base64File);
+
+      const portion = "data:application/zip;base64,";
+      console.log(base64File.substring(portion.length));
+      const base64WithoutPrefix = base64File.substring(portion.length);
       
       const fields = {
         desiredOutcome: desiredOutcome,
@@ -261,7 +266,7 @@ function App() {
         usedNaturalLanguage: useNaturalLanguage,
         naturalLanguageDescription: naturalLanguageDescription,
         fields: fields,
-        zipFile: base64File,
+        zipFile: base64WithoutPrefix,
         fileName: zipFile.name,
         fileSize: zipFile.size
       };
