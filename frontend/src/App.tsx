@@ -55,7 +55,8 @@ function App() {
 
         <div className="relative flex flex-row justify-between w-[96%] h-[70%]">
           {submitStatus.type && 
-            (<div className={`absolute flex items-center justify-center w-[35%] min-h-[35%] text-center cursor-pointer ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}
+            setTimeout(() => setSubmitStatus({ type: null, message: '' }), 3000) &&
+            (<div className={`absolute flex items-center justify-center w-[35%] min-h-[15%] top-[calc(50%-7.5%)] right-5 text-center cursor-pointer ${submitStatus.type === 'success' ? 'bg-[#1b1b1b] text-green-100' : 'bg-red-900 text-red-100'}`}
                   onClick={() => setSubmitStatus({ type: null, message: '' })}>
               {submitStatus.message}
             </div>
@@ -196,12 +197,12 @@ function App() {
     
     function checkInputWrapper(containerID: string, errorMessage: string) {
       setMissingFieldFlash(document.getElementById(containerID));
-      console.error(errorMessage);
+      finalErrorMessage += `${errorMessage}, `;
       errorOccured = true;
-      finalErrorMessage += `${errorMessage}\n`;
     }
     
     event.preventDefault();
+    setSubmitStatus({ type: null, message: '' });
 
     const fileUploadInput: HTMLInputElement | null = document.getElementById("file-upload") as HTMLInputElement;
     const desiredOutcomeInput: HTMLInputElement | null = document.getElementById("desired-outcome-text-field") as HTMLInputElement;
@@ -228,6 +229,7 @@ function App() {
     if (errorOccured) {
       setSubmitStatus({ type: 'error', message: finalErrorMessage });
       console.log(finalErrorMessage);
+      setTimeout(() => setSubmitStatus({ type: null, message: '' }), 3000);
       return;
     }
     
@@ -288,7 +290,6 @@ function App() {
         else {
           console.error("Error:", response.statusText);
           setSubmitStatus({ type: 'error', message: `Error: ${response.statusText}. Please try again.` });
-          // setMissingFieldFlash(document.getElementById("give-zip-btn"));
         }
       } 
       catch (error) {
