@@ -277,9 +277,11 @@ function App() {
         
         if (response.ok) {
           const result = await response.json();
-          const fullBase64Data = "data:application/zip;base64," + result.processedZipFile;
+          console.log(result);
+
+          const fullBase64Data = "data:application/zip;base64," + result.output_file;
           const zipFileSize = fullBase64Data.length * (3/4) - (fullBase64Data.endsWith("==") ? 2 : fullBase64Data.endsWith("=") ? 1 : 0);
-          const newNumberOfFiles = result.numberOfFiles;
+          const newNumberOfFiles = result.count;
           console.log("Success:", result);
           setSubmitStatus({ type: 'success', message: 'File processed successfully! Check the console for results.' });
           setReceivedZip({ base64Encoding: fullBase64Data, 

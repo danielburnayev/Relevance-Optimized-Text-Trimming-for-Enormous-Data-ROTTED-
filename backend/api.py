@@ -45,9 +45,24 @@ def userinput():
   print(body)
 
 
+  usedNaturalLanguage = body["usedNaturalLanguage"]
+  if not usedNaturalLanguage:
+      fields = body["fields"]
 
+      desiredOutcome = fields["desiredOutcome"]
+      importantDate = fields["importantDate"]
+      importantPeople = fields["importantPeople"]
+      importantEvents = fields["importantEvents"]
+      importantLocation = fields["importantLocation"]
 
-  userinput=body["desiredOutcome"]
+      userinput = desiredOutcome
+
+  else:
+      naturalLanguageDescription = body["naturalLanguageDescription"]
+
+      userinput = naturalLanguageDescription
+
+#   userinput=body["desiredOutcome"]
   kw_model = KeyBERT()
   b64 = body["zipFile"]
   filename = body["fileName"]
