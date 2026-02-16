@@ -1,3 +1,4 @@
+import io
 from flask import Flask
 import os
 import json,re
@@ -45,7 +46,6 @@ def userinput():
       body = request.get_json()
       if not body:
           return {"error": "Empty request body"}, 400
-      print("Received body:", body)
 
       # Validate required fields
       if "zipFile" not in body:
@@ -110,7 +110,7 @@ def userinput():
            f.write(file_bytes)
    
       try:
-          with zipfile.ZipFile(upload_path, "r") as z:
+          with zipfile.ZipFile(io.BytesIO(file_bytes), "r") as z:
                z.extractall(EXTRACT_DIR)
       except zipfile.BadZipFile as e:
           print(f"Zip file error: {str(e)}")
@@ -123,82 +123,34 @@ def userinput():
       print(f"Unexpected error in userinput: {str(e)}")
       return {"error": f"Unexpected error: {str(e)}"}, 500
 
-  out_file = os.path.join(FINALE_DIR, f"results_{now}.txt")
   count = 0
-  with open(out_file, "w", encoding="utf-8") as out:
-       for root, dirs, files in os.walk(EXTRACT_DIR):
-           dirs[:] = [d for d in dirs if d != "__MACOSX"]
 
+  with zipfile.ZipFile("results.zip", "w", compression=zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk(EXTRACT_DIR):
+      dirs[:] = [d for d in dirs if d != "__MACOSX"]
 
-           for file_name in files:
-               if file_name == ".DS_Store":
-                   continue
+      for file_name in files:
+          if file_name == ".DS_Store":
+              continue
 
+          path = os.path.join(root, file_name)
+          z.write(path, arcname=file_name)
+          count += 1
 
-               path = os.path.join(root, file_name)
+  try:
+    # Read the zip file and encode it to base64
+    with open("results.zip", "rb") as f:
+      raw_file_data = f.read()
+      base64_encoded_bytes = base64.b64encode(raw_file_data)
+      base64_encoded_string = base64_encoded_bytes.decode('utf-8')
+      print(f"Successfully encoded zip file ({len(raw_file_data)} bytes)")
+  except Exception as e:
+    print(f"Error reading zip file for base64 encoding: {str(e)}")
+    return {"error": f"Failed to read zip file: {str(e)}"}, 500
 
-
-               with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                   text = f.read()
-
-
-               if not text:
-                   continue
-              
-               keywords = [kw for kw, _ in kw_model.extract_keywords(userinput)]
-
-
-               k = max(1, int(len(text) * 0.025))
-
-
-               ranges = []
-               for kw in keywords:
-                   pos = 0
-                   while True:
-                       start = text.find(kw, pos)
-                       if start == -1:
-                           break
-
-
-                       end = start + len(kw)
-                       a = max(0, start - k)
-                       b = min(len(text), end + k)
-                       ranges.append((a, b))
-                       pos = end
-
-
-               if not ranges:
-                   continue
-
-
-               ranges.sort()
-               merged = []
-               for a, b in ranges:
-                   if not merged or a > merged[-1][1]:
-                       merged.append([a, b])
-                   else:
-                       merged[-1][1] = max(merged[-1][1], b)
-
-
-               for a, b in merged:
-                   out.write(text[a:b])
-                   out.write("\n\n")
-
-               
-               result=','.join(keywords)
-               out.write(result)
-
-               count += len(merged)
-
-  print(f"Processing complete. Total ranges: {count}")
-  return {"count": count, "output_file": out_file}
+  return {"count": count, "output_file": base64_encoded_string}
  
 
-
-
-
-  
 if __name__ == '__main__':
    app.run(debug=True)
-
 

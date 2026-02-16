@@ -20,7 +20,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
-  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>({ base64Encoding: '', zipSize: 0, numberOfFiles: 0 });
+  const [receivedZip, setReceivedZip] = useState<ZipInfo | null>(null);
 
   return (
     // outermost <> is a div with id root
@@ -30,6 +30,9 @@ function App() {
           <h1 className="text-4xl">ROTTED</h1>
           <h2>Relevance Optimized Text Trimming for Enormous Data</h2>
         </div>
+
+        <a href="./index.css" className=""/>
+
         <button id="settings-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>Settings</button>
       </header>
 
@@ -67,7 +70,7 @@ function App() {
              {(showInstructions) ? <h1 className="text-4xl h-1/7 mr-auto ml-2 mt-2">2: Provide package file of your text files</h1> : <></>} 
             
             <h2 className="text-center">
-              1 .zip file {"<"}= 50GB <br/>
+              1 ZIP file {"<"}= 50GB <br/>
               Only .txt or .json files inside will be analyzed
             </h2>
             
@@ -104,8 +107,7 @@ function App() {
               </div>
               <a href={(receivedZip) ? receivedZip.base64Encoding : ""} download="results.zip" 
                  id="download-zip-btn"
-                 className={`${(receivedZip) ? "opacity-100 download-zip-flash" : "opacity-50 pointer-events-none"} flex flex-col items-center justify-center h-1/2 aspect-square px-6 py-3 text-black border-4 border-white bg-white`}
-                 onClick={() => setReceivedZip(null)}>
+                 className={`${(receivedZip) ? "opacity-100 download-zip-flash" : "opacity-50 pointer-events-none"} flex flex-col items-center justify-center h-1/2 aspect-square px-6 py-3 text-black border-4 border-white bg-white`}>
 
                 <img src={downloadIcon}/>
                 {receivedZip && (
@@ -176,19 +178,19 @@ function App() {
           </div>
 
           <div className="flex items-center justify-between py-4 border-b border-gray-700">
-            <label htmlFor="instructions-toggle" className="text-lg cursor-pointer">
+            <label htmlFor="demo-toggle" className="text-lg cursor-pointer">
               Demo
             </label>
             <button
-              id="instructions-toggle"
-              onClick={() => setReceivedZip((!receivedZip) ? { base64Encoding: '', zipSize: 0, numberOfFiles: 0 } : null)}
+              id="demo-toggle"
+              onClick={() => setReceivedZip((!receivedZip) ? { base64Encoding: '', zipSize: 1234567, numberOfFiles: 10 } : null)}
               className={`relative w-12 h-6 sm:w-14 sm:h-7 transition-colors duration-300 shrink-0 ${
-                showInstructions ? 'bg-blue-600' : 'bg-gray-600'
+                !receivedZip ? 'bg-blue-600' : 'bg-gray-600'
               }`}
             >
               <span
                 className={`absolute top-0 left-0 w-[26px] aspect-square bg-white transition-transform duration-300 ${
-                  showInstructions ? 'translate-x-6 sm:translate-x-7' : 'translate-x-0'
+                  !receivedZip ? 'translate-x-6 sm:translate-x-7' : 'translate-x-0'
                 }`}
               />
             </button>
@@ -220,6 +222,7 @@ function App() {
     
     event.preventDefault();
     setSubmitStatus({ type: null, message: '' });
+    setReceivedZip(null);
 
     const fileUploadInput: HTMLInputElement | null = document.getElementById("file-upload") as HTMLInputElement;
     const desiredOutcomeInput: HTMLInputElement | null = document.getElementById("desired-outcome-text-field") as HTMLInputElement;
@@ -301,7 +304,7 @@ function App() {
           const result = await response.json();
           console.log(result);
 
-          const fullBase64Data = "data:application/zip;base64," + result.output_file;
+          const fullBase64Data = result.output_file;
           const zipFileSize = fullBase64Data.length * (3/4) - (fullBase64Data.endsWith("==") ? 2 : fullBase64Data.endsWith("=") ? 1 : 0);
           const newNumberOfFiles = result.count;
           console.log("Success:", result);
