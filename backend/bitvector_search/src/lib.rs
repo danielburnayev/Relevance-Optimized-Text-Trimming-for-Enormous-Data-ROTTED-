@@ -182,17 +182,15 @@ impl ContextEngine {
 
     let output_lines: Vec<String> = embeddings.par_iter().enumerate().flat_map(|(i, row_floats)| {
       let mut hits = Vec::new();
-      let mut high_score: f32 = 0.0;
       let row_bits = self.quantize_single(row_floats);
 
       for filter in filters {
         let dist = self.hamming_distance(&row_bits, &filter.centroid);
         let score = 1.0 - (dist as f32 / 384.0);
 
-        if score > similarity_threshold && score > high_score {
+        if score > similarity_threshold {
           let clean_msg = batch[i].replace("\n", " ").replace("\"", "'");
           hits.push(format!("{} : {:.4} : \"{}\"", filter.name, score, clean_msg));
-          high_score = score;
         }
       }
       hits
