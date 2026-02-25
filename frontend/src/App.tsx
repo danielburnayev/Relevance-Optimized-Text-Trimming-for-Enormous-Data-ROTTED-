@@ -105,7 +105,7 @@ function App() {
               <div className="flex items-center justify-between h-1/8 mb-[12.5%] w-full">
                 <h1 className="text-4xl mr-auto ml-2 mt-2">{(showInstructions) ? "3: Download relevant files" : ""}</h1>
               </div>
-              <a href={(receivedZip) ? receivedZip.base64Encoding : ""} download="results.zip" 
+              <a href={(receivedZip) ? `data:application/zip;base64,${receivedZip.base64Encoding}` : ""} download="results.zip" 
                  id="download-zip-btn"
                  className={`${(receivedZip) ? "opacity-100 download-zip-flash" : "opacity-50 pointer-events-none"} flex flex-col items-center justify-center h-1/2 aspect-square px-6 py-3 text-black border-4 border-white bg-white`}>
 
