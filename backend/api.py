@@ -1,13 +1,14 @@
 import io
 import os
 import csv
+import json
 import traceback
 import base64, zipfile
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from query_handle import process_queries
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='dist', static_url_path='/')
 CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
@@ -20,8 +21,15 @@ app.config['DOWNLOAD_DIR'] = UPLOAD_DIR
 RUST_ENDPOINT = os.getenv('RUST_ENDPOINT')
 
 @app.route('/')
-def home():
-  return '<h1>Flask REST starting guys</h1>'
+def serve_frontend():
+  return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static_files(path):
+  if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+    return send_from_directory(app.static_folder, path)
+  else:
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.post('/userinput')
 def userinput():
@@ -42,11 +50,11 @@ def userinput():
         if file_info.is_dir() or file_info.filename.startswith('__MACOSX'):
           continue
 
+        extracted_contents = []
         filename = file_info.filename
         if file_info.filename.endswith(('.txt', '.json', '.csv')):
           raw_bytes = z.read(filename)
           text_data = raw_bytes.decode('utf-8', errors='replace')
-          extracted_contents = []
 
         if file_info.filename.endswith('.csv'):
           f_io = io.StringIO(text_data)
