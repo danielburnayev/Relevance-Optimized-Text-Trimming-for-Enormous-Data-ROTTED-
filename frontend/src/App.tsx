@@ -270,9 +270,10 @@ function App() {
       const base64File = e.target?.result as string;
       console.log(base64File);
 
-      const portion = "data:application/zip;base64,";
-      console.log(base64File.substring(portion.length));
-      const base64WithoutPrefix = base64File.substring(portion.length);
+      //const portion = "data:application/zip;base64,";
+      //console.log(base64File.substring(portion.length));
+      //const base64WithoutPrefix = base64File.substring(portion.length);
+      const base64WithoutPrefix = base64File.split(',')[1];
       
       const fields = {
         desiredOutcome: desiredOutcome,
