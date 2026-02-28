@@ -1,0 +1,20 @@
+# .dockerignore
+
+# Use the wildcard '**' for things that might pop up anywhere
+**/node_modules
+**/dist
+**/__pycache__
+**/.venv
+**/.env
+
+# Ignore git and GitHub Action folders
+.git
+.github
+
+# Ignore any random test zip files in the root
+*.zip
+
+# Explicitly ignore the backend's local storage folders
+backend/UPLOAD/
+backend/DOWNLOAD/
+backend/
