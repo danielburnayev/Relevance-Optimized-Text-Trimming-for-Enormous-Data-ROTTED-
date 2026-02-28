@@ -15,6 +15,5 @@
 *.zip
 
 # Explicitly ignore the backend's local storage folders
-backend/UPLOAD/
-backend/DOWNLOAD/
-backend/
+backend/UPLOAD/*
+backend/DOWNLOAD/*
