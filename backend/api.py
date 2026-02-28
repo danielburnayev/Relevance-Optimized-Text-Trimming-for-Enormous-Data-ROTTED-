@@ -4,7 +4,7 @@ import csv
 import json
 import traceback
 import base64, zipfile
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from query_handle import process_queries
 
