@@ -122,7 +122,7 @@ def process_queries(queries: dict, data_csv_path: str, target_col_index: int, en
 
   print(f"\nSending queries to {endpoint_url}...")
   try:
-    response = requests.post(endpoint_url, files=files)
+    response = requests.post(endpoint_url, files=files, timeout=3600)
 
     if response.status_code == 200:
       output_filename = "DOWNLOAD/filtered_results.zip"
