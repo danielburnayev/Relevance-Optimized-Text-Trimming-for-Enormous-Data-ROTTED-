@@ -1,7 +1,7 @@
-use anyhow::{Error, Result};
+use anyhow::Result;
 use candle_core::{Device, Tensor};
 use candle_nn::VarBuilder;
-use candle_transformers::models::bert::{BertModel, Config, HiddenAct};
+use candle_transformers::models::bert::{BertModel, Config};
 use tokenizers::{PaddingParams, Tokenizer};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -18,7 +18,7 @@ pub struct BertEngine {
 }
 
 impl BertEngine {
-  pub fn new(model_id: &str) -> Result<Self> {
+  pub fn new(_model_id: &str) -> Result<Self> {
     let device = candle_core::Device::new_cuda(0).unwrap_or(candle_core::Device::Cpu);
 
     let config_path = "/app/model_cache/config.json"; 
@@ -39,18 +39,27 @@ impl BertEngine {
 
   pub fn embed_batch(&self, sentences: &[String]) -> Result<Tensor> {
     let tokens = self.tokenizer.encode_batch(sentences.to_vec(), true).map_err(anyhow::Error::msg)?;
-    let token_ids = tokens.iter().map(|t: &tokenizers::Encoding| t.get_ids().to_vec()).collect::<Vec<_>>();
+    let token_ids = tokens.iter().map(|t| t.get_ids().to_vec()).collect::<Vec<_>>();
     let token_ids_tensor = Tensor::new(token_ids, &self.device)?;
+    let attention_mask = tokens.iter().map(|t| t.get_attention_mask().to_vec()).collect::<Vec<_>>();
+    let attention_mask_tensor = Tensor::new(attention_mask, &self.device)?;
 
     let token_type_ids = token_ids_tensor.zeros_like()?;
-    let embeddings = self.model.forward(&token_ids_tensor, &token_type_ids, None)?;
+    let embeddings = self.model.forward(&token_ids_tensor, &token_type_ids, Some(&attention_mask_tensor))?;
+    let mask_expanded = attention_mask_tensor
+      .unsqueeze(2)?
+      .broadcast_as(embeddings.shape())?
+      .to_dtype(embeddings.dtype())?;
 
-    let (_n_sentence, n_tokens, _hidden_size) = embeddings.dims3()?;
-    let embeddings = (embeddings.sum(1)? / (n_tokens as f64))?;
+    let masked_embeddings = (embeddings * &mask_expanded)?;
+    let sum_embeddings = masked_embeddings.sum(1)?;
+    let sum_mask = mask_expanded.sum(1)?;
+    let clamped_mask = sum_mask.clamp(1e-9, f64::MAX)?;
+    let pooled_embeddings = sum_embeddings.broadcast_div(&clamped_mask)?;
 
-    let sum_sq = embeddings.sqr()?.sum_keepdim(1)?;
+    let sum_sq = pooled_embeddings.sqr()?.sum_keepdim(1)?;
     let norm = sum_sq.sqrt()?;
-    let embeddings = embeddings.broadcast_div(&norm)?;
+    let embeddings = pooled_embeddings.broadcast_div(&norm)?;
 
     Ok(embeddings)
   }
@@ -75,7 +84,7 @@ impl ContextEngine {
   pub fn process_filters(&self, input_keyw_path: &str) -> Result<Vec<ContextFilter>, Box<dyn StdError>> {
     let mut filters = Vec::new();
     let mut keyw_reader = ReaderBuilder::new()
-      .has_headers(true)
+      .has_headers(false)
       .flexible(true)
       .from_path(input_keyw_path)?;
 
@@ -88,8 +97,16 @@ impl ContextEngine {
         }
       };
       let cat = record.get(0).unwrap_or("default");
-      let rec_to_vec: Vec<String> = record.iter().skip(1).map(|s| s.to_string()).collect();
-      println!("Pushing new filter {}", cat);
+      let rec_to_vec: Vec<String> = record.iter()
+        .skip(1)
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+      if rec_to_vec.is_empty() {
+        continue;
+      }
+      println!("Pushing new filter {} with {} actual keywords", cat, rec_to_vec.len());
       filters.push(self.create_filter(cat, rec_to_vec)?);
     }
     Ok(filters)
@@ -126,7 +143,7 @@ impl ContextEngine {
     output_path: &str, 
     filters: &[ContextFilter]) -> Result<(), Box<dyn StdError>> {
 
-    let batch_size: usize = 64;
+    let batch_size: usize = 1024;
 
     let (tx, rx) = mpsc::sync_channel::<Vec<String>>(100);
 
@@ -147,7 +164,7 @@ impl ContextEngine {
     println!("Reading entire CSV into memory to unblock the disk...");
     let mut all_texts = Vec::new();
     let mut reader = ReaderBuilder::new().has_headers(true).flexible(true).from_path(input_data_path)?;
-
+    /*
     for result in reader.records() {
       if let Ok(record) = result {
         if let Some(text) = record.get(record_index) { 
@@ -155,7 +172,14 @@ impl ContextEngine {
         }
       }
     }
-    println!("Loaded {} rows. Blasting to all CPU cores...", all_texts.len());
+    */
+    for result in reader.records() {
+      if let Ok(record) = result {
+        all_texts.push(vec![record.get(0).ok_or("Error reading filename column...")?.to_string(), 
+                            record.get(record_index).ok_or("Error reading data column...")?.to_string()]);
+      }
+    }
+    println!("Loaded {} rows. Sending to GPU...", all_texts.len());
 
     all_texts.par_chunks(batch_size).for_each(|batch| {
       if let Ok(output_lines) = self.compute_batch_strings(batch, filters) {
@@ -173,27 +197,45 @@ impl ContextEngine {
   }
 
   fn compute_batch_strings(&self, 
-    batch: &[String], 
+    batch: &[Vec<String>], 
     filters: &[ContextFilter]) -> Result<Vec<String>> {
 
     let similarity_threshold = 0.65;
+    let mut parse_batch = Vec::new();
+    for tot_row in batch {
+      //if let Ok(txt) = tot_row[1] {
+      //  parse_batch.push(txt);
+      //}
+      parse_batch.push(tot_row[1].clone());
+    }
 
-    let embeddings = self.embedder.embed_batch(batch)?.to_vec2::<f32>()?;
+    let embeddings = self.embedder.embed_batch(&parse_batch)?.to_vec2::<f32>()?;
 
-    let output_lines: Vec<String> = embeddings.par_iter().enumerate().flat_map(|(i, row_floats)| {
-      let mut hits = Vec::new();
+    let output_lines: Vec<String> = embeddings.par_iter().enumerate().filter_map(|(i, row_floats)| {
       let row_bits = self.quantize_single(row_floats);
+
+      let mut best_filter = None;
+      let mut best_score = -1.0;
 
       for filter in filters {
         let dist = self.hamming_distance(&row_bits, &filter.centroid);
         let score = 1.0 - (dist as f32 / 384.0);
 
-        if score > similarity_threshold {
-          let clean_msg = batch[i].replace("\n", " ").replace("\"", "'");
-          hits.push(format!("{} : {:.4} : \"{}\"", filter.name, score, clean_msg));
+        if score > best_score {
+          best_score = score;
+          best_filter = Some(filter);
         }
       }
-      hits
+
+      if let Some(filter) = best_filter {
+        if best_score > similarity_threshold {
+          let clean_msg = parse_batch[i].replace("\n", " ").replace("\"", "'");
+          //return Some(format!("{} : {:.4} : \"{}\"", batch.get(0), filter.name, clean_msg));
+          return Some(format!("{} : {} : \"{}\"", batch[i].get(0).unwrap(), filter.name, clean_msg));
+        }
+      }
+
+      None
     }).collect();
 
     Ok(output_lines)
@@ -201,8 +243,12 @@ impl ContextEngine {
 
   fn quantize_single(&self, embedding: &[f32]) -> [u64; 6] {
     let mut bits = [0u64; 6];
+
+    let sum: f32 = embedding.iter().sum();
+    let mean = sum / embedding.len() as f32;
+
     for (i, &val) in embedding.iter().enumerate() {
-      if val > 0.0 {
+      if val > mean {
         bits[i / 64] |= 1 << (i % 64);
       }
     }
