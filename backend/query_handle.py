@@ -132,7 +132,10 @@ def process_queries(queries: dict, data_csv_path: str, target_col_index: int, en
 
       return output_filename
     else:
-      print(f"Error {response.status_code}: {response.text}")
-  except requests.exceptions.ConnectionError:
-    print("Connection Error: Could not reach the Rust server. Is it running?")
+      error_msg = f"Rust server failed with {response.status_code}: {response.text}"
+      #print(error_msg)
+      raise Exception(error_msg)
+  except Exception as e:
+    print(f"Error connecting to rust endpoint: {e}")
+    raise e
 
